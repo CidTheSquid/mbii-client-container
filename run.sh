@@ -4,7 +4,7 @@
 # Adjust as needed:
 #   - resolution: r_mode -1 + r_customwidth/height (default 1920x1080)
 #   - fullscreen: add +set r_fullscreen 1
-#   - sound: drop "+set s_initsound 0" to enable audio
+#   - sound: change to "+set s_initsound 1" to enable audio
 set -e
 
 GAMEDATA=${GAMEDATA:-/home/cid/Downloads/mb2/gamedata}
