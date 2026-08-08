@@ -1,13 +1,19 @@
 #!/bin/sh
 # Run Movie Battles II windowed on the host NVIDIA GPU via X11.
 #
+# Usage: ./run.sh [gamedata-path]
+#   The gamedata path can be given as an argument, the GAMEDATA env var, or
+#   left at the default below.
+#
 # Adjust as needed:
 #   - resolution: r_mode -1 + r_customwidth/height (default 1920x1080)
 #   - fullscreen: add +set r_fullscreen 1
 #   - sound: change to "+set s_initsound 1" to enable audio
 set -e
 
+GAMEDATA=${1:-$GAMEDATA}
 GAMEDATA=${GAMEDATA:-/PATH_TO_YOUR/gamedata}
+[ -d "$GAMEDATA" ] || { echo "error: gamedata dir not found: $GAMEDATA" >&2; exit 1; }
 # X auth cookie of the running X server (path changes each session).
 XAUTH=${XAUTH:-$(ps -eo args 2>/dev/null | awk '/Xwayland|Xorg/ && !/grep/ {for (i=1;i<=NF;i++) if ($i=="-auth" && $(i+1)!="") {print $(i+1); exit}}')}
 [ -n "$XAUTH" ] || { echo "error: could not locate the X server auth file (set XAUTH=...)" >&2; exit 1; }

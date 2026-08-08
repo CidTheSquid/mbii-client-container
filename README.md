@@ -6,7 +6,7 @@ the host's NVIDIA driver over X11 — **without installing any NVIDIA software i
 the image**, so the image is freely redistributable.
 
 
-Warning: This is absolutely not going to receive any regular amount of support. If you
+**Warning**: This is absolutely not going to receive any regular amount of support. If you
 hit an issue, consider pointing a highly capable model like Deepseek v4 at it.
 
 ```
@@ -39,7 +39,7 @@ hit an issue, consider pointing a highly capable model like Deepseek v4 at it.
   user-space libs *must match the host driver version* (they talk to the kernel
   module via version-gated ABI), so we can't just install "any" libs.
 
-The design that falls out of all this: the image ships only free components
+As a result, the image ships only free components
 (glvnd GL/GLX dispatch + a patched SDL2/SDL3, both MIT/zlib licensed), and the
 NVIDIA libs are provided at **runtime** from a host directory that
 `./fetch-driver.sh` populates from NVIDIA's **own download servers**.
@@ -53,8 +53,7 @@ mbii-gpu/
 ├── Dockerfile            # linux/386 image; free components only (no NVIDIA files)
 ├── build.sh              # podman build --platform linux/386  (-t mbii-glx -t mbii-gpu)
 ├── run.sh                # run the game windowed (--rm); auto-detects X auth cookie
-├── run-logs.sh           # like run.sh but keeps the container + tees logs
-├── fetch-driver.sh       # stage the 32-bit NVIDIA user-space libs into driver/
+├── run-logs.sh           # like run.sh but keeps the container + tees logs├── fetch-driver.sh       # stage the 32-bit NVIDIA user-space libs into driver/
 ├── driver/usr/lib/       # ← NVIDIA libs live HERE (host), mounted at /usr/lib/nvidia
 ├── rootfs-overlay/usr/lib/      # free libs baked into the image: glvnd + patched SDL
 ├── rootfs-overlay/usr/share/glvnd/egl_vendor.d/10_nvidia.json
@@ -75,10 +74,27 @@ mbii-gpu/
 ```
 
 The image is `localhost/mbii-glx:latest` (also tagged `mbii-gpu`). The game
-data volume defaults to `GAMEDATA=` (override
-with the `GAMEDATA` env var); the game runs with `fs_game MBII`, `s_initsound 0`,
-and a 1920x1080 window by default. Resolution/fullscreen/sound are one-line edits
-at the top of `run.sh`.
+runs with `fs_game MBII`, `s_initsound 0`, and a 1920x1080 window by default.
+Resolution/fullscreen/sound are one-line edits at the top of `run.sh`.
+
+### Specifying the gamedata folder
+
+Both `run.sh` and `run-logs.sh` take the **path to the gamedata folder** (the
+directory containing `mbii.i386`, `base/` and `MBII/`) as their first argument:
+
+```sh
+./run.sh /path/to/gamedata
+./run-logs.sh /path/to/gamedata +devmap mb2_cloudcity
+```
+
+The lookup order is: first CLI argument → `GAMEDATA` env var → the default
+placeholder in the script (`/PATH_TO_YOUR/gamedata` in `run.sh`,
+`/PATH_TO_DOWNLOADED_MBII/gamedata` in `run-logs.sh`). The path is checked to
+exist before launching; set `GAMEDATA` and edit the placeholder to your own
+install if you don't want to pass it every time.
+
+`run-logs.sh` treats everything after the first argument (or the `MAP` env var)
+as the game command line, e.g. `+devmap <map>`.
 
 ---
 
@@ -116,7 +132,7 @@ mismatch fails at runtime with a GLX/EGL version error. So:
    files into `driver/usr/lib/`, and creates the soname symlinks glvnd needs
    (`libGLX_nvidia.so.0 → libGLX_nvidia.so.<ver>`, etc.).
 
-The download comes straight from NVIDIA's download servers — the script never
+The download comes straight from NVIDIA's download servers; the script never
 redistributes the driver; it only stages what your host already runs.
 
 ### Manual path (when the exact version isn't published)
@@ -179,7 +195,6 @@ grep -ic "couldn't find image" logs/mbii-*.log   # expect 0
 | GLX/EGL version mismatch at startup | `driver/` libs don't match the host driver. Re-run `./fetch-driver.sh` (or reselect), see above. |
 | Missing textures/models | Check `gamedata/base/` exists with `assets0-3.pk3` (a symlink into another host dir does **not** work inside the container — it must be real files). |
 | `ERROR: sound/null has length 0` | `sound/null.wav` must exist in `gamedata/MBII/sound/`. |
-| Game cleanly quits ~20 s after menu | Leftover `autoexec.cfg` in `gamedata/.local/share/openjk/MBII/` with a `quit`. |
 | `error: cannot determine driver version` | `nvidia-smi` missing; pass the version explicitly: `./fetch-driver.sh 610.57.04` |
 
 Known cosmetic-only gaps (referenced by menus, present in no pk3):

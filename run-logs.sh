@@ -10,10 +10,16 @@
 #
 # To reproduce a crash on a specific map, pass the map on the command line:
 #   ./run-logs.sh +devmap mb2_cloudcity
-# or edit the MAP line below.
+#
+# Usage: ./run-logs.sh [gamedata-path] [+map/+devmap <map> ...]
+#   First arg (optional) = path to the gamedata folder; everything after it
+#   (or the MAP env var) is appended to the game command line.
 set -e
 
+GAMEDATA=${1:-$GAMEDATA}
 GAMEDATA=${GAMEDATA:-/PATH_TO_DOWNLOADED_MBII/gamedata}
+[ -d "$GAMEDATA" ] || { echo "error: gamedata dir not found: $GAMEDATA" >&2; exit 1; }
+[ $# -gt 0 ] && shift
 # X auth cookie of the running X server (path changes each session).
 XAUTH=${XAUTH:-$(ps -eo args 2>/dev/null | awk '/Xwayland|Xorg/ && !/grep/ {for (i=1;i<=NF;i++) if ($i=="-auth" && $(i+1)!="") {print $(i+1); exit}}')}
 [ -n "$XAUTH" ] || { echo "error: could not locate the X server auth file (set XAUTH=...)" >&2; exit 1; }
@@ -21,7 +27,7 @@ XAUTH=${XAUTH:-$(ps -eo args 2>/dev/null | awk '/Xwayland|Xorg/ && !/grep/ {for 
 XDG_RUNTIME=${XDG_RUNTIME:-/run/user/1000}
 # NVIDIA 32-bit user-space libs, staged by ./fetch-driver.sh (NOT in the image).
 DRIVER_DIR=${DRIVER_DIR:-"$(dirname "$0")/driver/usr/lib"}
-MAP=${MAP:-""}
+MAP=${MAP:-"$*"}
 
 mkdir -p "$(dirname "$0")/logs"
 LOGFILE="$(dirname "$0")/logs/mbii-$(date +%Y%m%d-%H%M%S).log"
