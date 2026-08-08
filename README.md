@@ -5,6 +5,10 @@ OpenJK-based Jedi Academy engine) in a rootless podman container, rendering via
 the host's NVIDIA driver over X11 — **without installing any NVIDIA software in
 the image**, so the image is freely redistributable.
 
+
+Warning: This is absolutely not going to receive any regular amount of support. If you
+hit an issue, consider pointing a highly capable model like Deepseek v4 at it.
+
 ```
                 HOST (user-space)                         CONTAINER (linux/386)
   ┌─────────────────────────────────────┐    ┌───────────────────────────────────┐
@@ -42,46 +46,6 @@ NVIDIA libs are provided at **runtime** from a host directory that
 
 ---
 
-## How this was written
-
-The setup was built by debugging the game, container-first. The milestones:
-
-1. **GL present path (DRI3 syncobj fix).** The renderer initialized but the
-   present was broken/black. `strace` + `EGL_LOGS`/`GLX` debug showed the game's
-   SDL was sending `SetDRMDeviceInUse(226, 128)` (renderD128, the wrong /dev/dri
-   node) instead of renderD129. A patched `libSDL3` is shipped in
-   `rootfs-overlay/usr/lib` so the present uses the correct node
-   (`SetDRMDeviceInUse(226, 129)`, DRI3.9 syncobj swapchain, 60 fps).
-
-2. **The "auto-quit ~20 s after menu" mystery.** The game kept cleanly quitting.
-   `gdb` breakpoints on `Com_Quit_f` / `Cbuf_ExecuteText` showed the quit came
-   from `Cbuf_Execute → Com_Frame → main`, i.e. a scripted `quit`. Cause: a
-   leftover test harness in the game's `autoexec.cfg`
-   (`wait 300; screenshot mbii_menu; wait 1; quit`). Disabled by renaming it.
-
-3. **`ERROR: sound/null has length 0`** kicked players off servers. `sound/null`
-   is referenced by MBII's game modules but shipped in **no** pk3, so
-   `S_AddLoopingSound` (codemp/client/snd_dma.cpp) called
-   `Com_Error(ERR_DROP, ...)`. Fixed with a tiny silent 40 ms WAV at
-   `gamedata/MBII/sound/null.wav`.
-
-4. **Missing textures/models.** A Python scan of every file in all 85 MBII pk3s
-   showed the missing assets (Kyle's player model, `fonts/anewhope`,
-   crosshairs, HUD icons, stock menu art) existed in **no** pk3 — they are Jedi
-   Academy **base** assets (`base/assets0-3.pk3`). The gamedata volume had no
-   `base/` directory. A symlink to the Steam install's base dir **does not
-   work** (symlinks inside a container mount resolve to paths that don't exist
-   inside the container's namespace — FS_Startup silently skips the directory).
-   Fix: copy `assets0-3.pk3` (reflink) into `gamedata/base/`.
-
-5. **Making the image freely redistributable.** The NVIDIA libs were originally
-   vendored into `rootfs-overlay/` so the image "just worked", but NVIDIA's
-   driver EULA restricts redistribution. They were moved out of the image into
-   the host-side `driver/usr/lib` (this README's directory layout), fetched
-   from NVIDIA's own servers — you never redistribute the bytes.
-
----
-
 ## Directory layout
 
 ```
@@ -111,7 +75,7 @@ mbii-gpu/
 ```
 
 The image is `localhost/mbii-glx:latest` (also tagged `mbii-gpu`). The game
-data volume defaults to `GAMEDATA=/home/cid/Downloads/mb2/gamedata` (override
+data volume defaults to `GAMEDATA=` (override
 with the `GAMEDATA` env var); the game runs with `fs_game MBII`, `s_initsound 0`,
 and a 1920x1080 window by default. Resolution/fullscreen/sound are one-line edits
 at the top of `run.sh`.
