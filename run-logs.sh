@@ -13,10 +13,11 @@
 # or edit the MAP line below.
 set -e
 
-GAMEDATA=${GAMEDATA:-/home/cid/Downloads/mb2/gamedata}
+GAMEDATA=${GAMEDATA:-/PATH_TO_DOWNLOADED_MBII/gamedata}
 # X auth cookie of the running X server (path changes each session).
 XAUTH=${XAUTH:-$(ps -eo args 2>/dev/null | awk '/Xwayland|Xorg/ && !/grep/ {for (i=1;i<=NF;i++) if ($i=="-auth" && $(i+1)!="") {print $(i+1); exit}}')}
 [ -n "$XAUTH" ] || { echo "error: could not locate the X server auth file (set XAUTH=...)" >&2; exit 1; }
+# Depending on your system, you may need to change this path
 XDG_RUNTIME=${XDG_RUNTIME:-/run/user/1000}
 # NVIDIA 32-bit user-space libs, staged by ./fetch-driver.sh (NOT in the image).
 DRIVER_DIR=${DRIVER_DIR:-"$(dirname "$0")/driver/usr/lib"}

@@ -7,7 +7,7 @@
 #   - sound: change to "+set s_initsound 1" to enable audio
 set -e
 
-GAMEDATA=${GAMEDATA:-/home/cid/Downloads/mb2/gamedata}
+GAMEDATA=${GAMEDATA:-/PATH_TO_YOUR/gamedata}
 # X auth cookie of the running X server (path changes each session).
 XAUTH=${XAUTH:-$(ps -eo args 2>/dev/null | awk '/Xwayland|Xorg/ && !/grep/ {for (i=1;i<=NF;i++) if ($i=="-auth" && $(i+1)!="") {print $(i+1); exit}}')}
 [ -n "$XAUTH" ] || { echo "error: could not locate the X server auth file (set XAUTH=...)" >&2; exit 1; }
